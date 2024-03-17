@@ -1,11 +1,21 @@
 import React, { useState } from "react";
-import { Box, Button, Textarea, Radio, RadioGroup, Stack, Heading, Flex, useToast } from "@chakra-ui/react";
+import { Box, Button, Textarea, Radio, RadioGroup, Stack, Heading, Flex, useToast, Text } from "@chakra-ui/react";
 import { FaCheck, FaTimes } from "react-icons/fa";
 
 const Index = () => {
   const [jsonInput, setJsonInput] = useState("");
   const [editMode, setEditMode] = useState("both");
+  const [hoveredElement, setHoveredElement] = useState(null);
   const toast = useToast();
+
+  const getTokenType = (token) => {
+    if (token.startsWith('"') && token.endsWith('"')) {
+      return "key";
+    } else if (token.startsWith('"') || !isNaN(token) || token === "true" || token === "false" || token === "null") {
+      return "value";
+    }
+    return null;
+  };
 
   const handleInputChange = (e) => {
     setJsonInput(e.target.value);
@@ -58,12 +68,48 @@ const Index = () => {
     }
   };
 
+  const renderText = (text) => {
+    return text.split(/(\s+)/).map((token, index) => {
+      const tokenType = getTokenType(token);
+      const hovered = hoveredElement && ((tokenType === "key" && hoveredElement.type === "key") || (tokenType === "value" && hoveredElement.type === "value") || (hoveredElement.type === tokenType && hoveredElement.value === token.replace(/"/g, "")));
+
+      let color = "inherit";
+      if (hovered) {
+        color = tokenType === "key" ? "blue.500" : "green.500";
+        if (hoveredElement.value === token.replace(/"/g, "")) {
+          color = "orange.500";
+        }
+      }
+
+      return (
+        <Text as="span" key={index} color={color} onMouseEnter={() => setHoveredElement({ type: tokenType, value: token.replace(/"/g, "") })} onMouseLeave={() => setHoveredElement(null)}>
+          {token}
+        </Text>
+      );
+    });
+  };
+
   return (
     <Box maxWidth="800px" margin="auto" padding={4}>
       <Heading as="h1" size="xl" marginBottom={4}>
         JSON Schema Object Editor
       </Heading>
-      <Textarea value={jsonInput} onChange={handleInputChange} placeholder="Enter JSON object" height="200px" marginBottom={4} />
+      <Textarea
+        value={jsonInput}
+        onChange={handleInputChange}
+        placeholder="Enter JSON object"
+        height="200px"
+        marginBottom={4}
+        whiteSpace="pre"
+        overflow="auto"
+        sx={{
+          "& .chakra-text": {
+            display: "inline",
+          },
+        }}
+      >
+        {renderText(jsonInput)}
+      </Textarea>
       <RadioGroup value={editMode} onChange={handleEditModeChange} marginBottom={4}>
         <Stack direction="row">
           <Radio value="both">Edit Keys and Values</Radio>
